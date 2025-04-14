@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, Trash } from "lucide-react";
+import { motion } from "framer-motion";
+
+const SWIPE_THRESHOLD = -80;
 
 type Notification = {
   id: number;
@@ -12,6 +15,8 @@ type Notification = {
 export default function NotificationPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currentlyDeleting, setCurrentlyDeleting] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const cancelRef = useRef(false);
 
   const updateBadge = (count: number) => {
     const badge = document.getElementById("noti-count");
@@ -41,23 +46,56 @@ export default function NotificationPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleDelete = (id: number) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    localStorage.setItem("notifications", JSON.stringify(notifications.filter((n) => n.id !== id)));
-    updateBadge(notifications.length - 1);
+  useEffect(() => {
+    if (notifications.length === 0) {
+      localStorage.setItem("notificationsSeen", "true");
+    }
+  }, [notifications]);
+
+  const handleSingleDelete = (id: number) => {
+    const el = document.getElementById(`notif-inner-${id}`);
+    if (el) {
+      el.style.transition = "margin-top 0.5s ease, transform 0.5s ease, opacity 0.5s ease";
+      el.style.marginTop = "-64px";
+      el.style.transform = "translateX(-100%)";
+      el.style.opacity = "0";
+
+      el.addEventListener("transitionend", () => {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        localStorage.setItem("notifications", JSON.stringify(notifications.filter((n) => n.id !== id)));
+        updateBadge(notifications.length - 1);
+      }, { once: true });
+    }
   };
 
   const handleDeleteAll = () => {
+    if (isAnimating) {
+      cancelRef.current = true;
+      return;
+    }
+
     const queue = [...notifications.map((n) => n.id)];
     if (queue.length === 0) return;
 
+    setIsAnimating(true);
+    cancelRef.current = false;
+
     const animateAndDelete = (index: number) => {
+      if (cancelRef.current) {
+        setIsAnimating(false);
+        setCurrentlyDeleting(null);
+        return;
+      }
+
       const currentId = queue[index];
-      if (!currentId) return;
+      if (!currentId) {
+        setIsAnimating(false);
+        return;
+      }
 
       setCurrentlyDeleting(currentId);
 
-      const el = document.getElementById(`notif-${currentId}`);
+      const el = document.getElementById(`notif-inner-${currentId}`);
       if (el) {
         const onTransitionEnd = () => {
           el.removeEventListener("transitionend", onTransitionEnd);
@@ -68,8 +106,6 @@ export default function NotificationPage() {
         };
 
         el.addEventListener("transitionend", onTransitionEnd);
-
-        // Force reflow so transition can apply
         void el.offsetWidth;
 
         el.style.transition = "margin-top 0.5s ease, transform 0.5s ease, opacity 0.5s ease";
@@ -98,33 +134,50 @@ export default function NotificationPage() {
         <>
           <ul className="space-y-2">
             {notifications.map((n) => (
-              <li
+              <motion.li
                 key={n.id}
-                id={`notif-${n.id}`}
-                style={{
-                  position: "relative",
-                  transition: "margin-top 0.5s ease, transform 0.5s ease, opacity 0.5s ease",
-                }}
-                className="bg-white/10 p-4 rounded-lg flex justify-between items-start"
+                initial={{ opacity: 0, x: 300 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1.6, ease: "easeOut" }}
+                style={{ overflow: "hidden" }}
               >
-                <div>
-                  <p className="text-sm">{n.message}</p>
-                  <p className="text-xs text-white/60 mt-1">{formatTime(n.timestamp)}</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(n.id)}
-                  className="text-white/60 hover:text-red-400"
+                <motion.div
+                  id={`notif-${n.id}`}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(e, info) => {
+                    if (info.offset.x < SWIPE_THRESHOLD) {
+                      handleSingleDelete(n.id);
+                    }
+                  }}
                 >
-                  <Trash className="w-4 h-4" />
-                </button>
-              </li>
+                  <div
+                    id={`notif-inner-${n.id}`}
+                    className="bg-white/10 p-4 rounded-lg flex justify-between items-start"
+                    style={{
+                      position: "relative",
+                      transition: "margin-top 0.5s ease, transform 0.5s ease, opacity 0.5s ease"
+                    }}
+                  >
+                    <div>
+                      <p className="text-sm">{n.message}</p>
+                      <p className="text-xs text-white/60 mt-1">{formatTime(n.timestamp)}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.li>
             ))}
           </ul>
+
           <button
             onClick={handleDeleteAll}
-            className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold"
+            className={`text-white py-2 px-4 rounded-lg text-sm font-semibold transition ${
+              isAnimating
+                ? "bg-red-800 fixed bottom-16 left-6 right-6 z-50 w-[calc(100%-3rem)] mx-auto"
+                : "bg-red-600 hover:bg-red-700 w-full mt-6"
+            }`}
           >
-            Delete All Notifications
+            {isAnimating ? "Cancel" : "Delete All"}
           </button>
         </>
       )}

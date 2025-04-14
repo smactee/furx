@@ -21,6 +21,15 @@ export default function PostPage() {
 
 
   const handleSubmit = () => {
+    const have = parseFloat(haveAmount);
+    const want = parseFloat(wantAmount);
+  
+    // Check that at least one is a valid positive number
+    if ((!have || have <= 0) && (!want || want <= 0)) {
+      alert("Please input a positive amount you plan to trade with or trade for.");
+      return;
+    }
+  
     const newPost = {
       haveCurrency,
       haveAmount,
@@ -30,14 +39,16 @@ export default function PostPage() {
       wantMethods,
       timestamp: Date.now(),
     };
-
+  
     const existing = JSON.parse(localStorage.getItem("posts") || "[]");
     localStorage.setItem("posts", JSON.stringify([...existing, newPost]));
-
+  
     alert("Your exchange offer has been posted!");
     setHaveAmount("");
     setWantAmount("");
   };
+  
+  
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-600 p-6 text-white">

@@ -199,7 +199,7 @@ export default function ChatHomePage() {
                   >
                     {/* Delete button */}
                     <div
-                      className={`absolute right-0 top-0 bottom-0 flex items-center pr-6 bg-red-600 z-0 transition-all duration-300 ${
+                      className={`absolute right-0 top-0 bottom-0 w-16 flex items-center justify-center bg-red-600 z-0 transition-all duration-300 ${
                         (dragX[chat.user] || 0) === 0
                           ? "opacity-0 translate-x-6"
                           : "opacity-100 translate-x-0"

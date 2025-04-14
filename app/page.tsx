@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Home, MessageCircle, Plus, Search, User, Bell } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import CurrencySelector from "./components/CurrencySelector";
 import { useExchangeRates, useCryptoRates } from "./hooks/useExchangeRates";
 import { currencies, type Currency } from "./components/currencies";
@@ -21,6 +21,7 @@ export default function HomePage() {
   };
 
   const router = useRouter();
+  const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [baseCurrency, setBaseCurrency] = useState<Currency>({
@@ -126,13 +127,21 @@ export default function HomePage() {
   useEffect(() => {
     const syncBadge = () => {
       const saved = JSON.parse(localStorage.getItem("notifications") || "[]");
-      updateBadge(saved.length);
+      const hasSeen = localStorage.getItem("notificationsSeen") === "true";
+  
+      if (pathname === "/notifications") {
+        localStorage.setItem("notificationsSeen", "true");
+        updateBadge(0);
+      } else {
+        updateBadge(hasSeen ? 0 : saved.length);
+      }
     };
-
+  
     syncBadge();
     window.addEventListener("storage", syncBadge);
     return () => window.removeEventListener("storage", syncBadge);
-  }, []);
+  }, [pathname]);
+  
 
   const targetCurrencies = currencies.map((c) => c.value).filter((code) => code !== baseCurrency.value);
 
@@ -155,7 +164,15 @@ export default function HomePage() {
       {/* HEADER */}
       <header className="flex justify-between items-center mb-6 relative">
         <h1 className="text-base font-bold tracking-wide">Für X Homepage</h1>
-        <Link href="/notifications" className="relative block w-6 h-6">
+        <Link
+  href="/notifications"
+  onClick={() => {
+    localStorage.setItem("notificationsSeen", "true");
+    const badge = document.getElementById("noti-count");
+    if (badge) badge.textContent = "";
+  }}
+  className="relative block w-6 h-6"
+>
   <Bell className="w-6 h-6 text-white" />
   <span
     id="noti-count"
@@ -294,7 +311,7 @@ export default function HomePage() {
       </section>
 
       {/* NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 w-full bg-white/10 p-4 flex justify-around backdrop-blur-lg border-t border-white/20">
+<nav className="fixed bottom-0 left-0 w-full bg-gradient-to-b from-[#584175] to-[#422F53] p-4 flex justify-around border-t border-white/20 z-50">
         <Link href="/"><Home /></Link>
         <Link href="/chats"><MessageCircle /></Link>
         <Link href="/post"><div className="bg-purple-500 p-4 rounded-full -mt-8 shadow-lg"><Plus /></div></Link>

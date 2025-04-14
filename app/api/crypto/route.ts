@@ -1,9 +1,8 @@
-
-// app/api/crypto/route.ts
-
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+  console.log("Incoming request:", req.url);
+
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol");
 
@@ -14,10 +13,15 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`https://cryptorates.ai/v1/price/${symbol}`);
     const text = await res.text();
+    console.log("Fetched raw text:", text);
+
     const price = parseFloat(text);
 
-    if (isNaN(price)) {
-      return NextResponse.json({ error: "Invalid price format" }, { status: 500 });
+    if (!text || isNaN(price)) {
+      return NextResponse.json(
+        { error: `Invalid price format for ${symbol}`, raw: text },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ symbol, price });
@@ -26,5 +30,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }
-
-  
