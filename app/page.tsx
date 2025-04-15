@@ -9,6 +9,8 @@ import { useRouter, usePathname } from "next/navigation";
 import CurrencySelector from "./components/CurrencySelector";
 import { useExchangeRates, useCryptoRates } from "./hooks/useExchangeRates";
 import { currencies, type Currency } from "./components/currencies";
+import PullToRefreshLayout from "./components/PullToRefreshLayout";
+
 
 const cryptoSymbols = ["BTC", "ETH", "USDT", "DOGE"];
 
@@ -160,6 +162,7 @@ export default function HomePage() {
   const dynamicRates = { ...(fiatRates || {}), ...(convertedCryptoRates || {}) };
 
   return (
+    <PullToRefreshLayout>
     <main className="min-h-screen bg-gradient-to-b from-[#584175] to-[#422F53] p-6 text-white">
       {/* HEADER */}
       <header className="flex justify-between items-center mb-6 relative">
@@ -319,5 +322,6 @@ export default function HomePage() {
         <Link href="/profile"><User /></Link>
       </nav>
     </main>
+    </PullToRefreshLayout>
   );
 }

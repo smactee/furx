@@ -2,13 +2,18 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { currencies } from "../components/currencies";
 import { getAllCountries } from "../components/countries";
 import { getCountryCallingCode, parsePhoneNumberFromString } from "libphonenumber-js";
 import metadata from "libphonenumber-js/metadata.full.json";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { useEscapeKey } from "../hooks/useEscapeKey";
+
+
 
 const countries = getAllCountries();
+
 
 const sharedCountryCodes: Record<string, { code: string; name: string; flag: string }[]> = {
   "1": [
@@ -65,7 +70,7 @@ export default function ProfilePage() {
 
     setProfile({
       name: saved.name || "",
-      email: saved.email || "user@example.com",
+      email: saved.email || "",
       phoneCode: saved.phone?.match(/^\+\d+/)?.[0] || "+1",
       phoneNumber: saved.phone?.replace(/^\+\d+\s*/, "") || "",
       flagOverride: saved.flagOverride || "",
@@ -85,11 +90,24 @@ export default function ProfilePage() {
       ...profile,
       phone: `${profile.phoneCode}${profile.phoneNumber}`,
     }));
+    if (!isValidEmail(profile.email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    if (!profile.name) {
+      alert("Please enter your name.");
+      return;
+    }
+    
     alert("Profile saved!");
   };
 
   const numericCode = profile.phoneCode.replace("+", "");
   const countryOptions = sharedCountryCodes[numericCode];
+
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  
 
   function getFlagEmoji(code: string): string {
     return code
@@ -105,6 +123,20 @@ export default function ProfilePage() {
 
       <div className="bg-white/10 rounded-xl p-6 space-y-4">
         <div className="flex items-center gap-4">
+        <div>
+  <label className="block mb-2">Badges</label>
+  <div className="flex flex-wrap gap-2 bg-white/10 p-4 rounded min-h-[144px] items-center">
+    {["🏆", "💰", "🕒", "🌍", "🔥"].map((badge, idx) => (
+      <div
+        key={idx}
+        className="w-10 h-10 flex items-center justify-center text-lg rounded-full bg-white/20"
+      >
+        {badge}
+      </div>
+    ))}
+  </div>
+</div>
+
           <ProfilePicturePicker compact />
           <div className="flex-1">
             <label className="block mb-1">Display Name</label>
@@ -119,9 +151,10 @@ export default function ProfilePage() {
         </div>
 
         <Field
-  label="Email"
+  label="Email Address"
   value={profile.email}
   onChange={(val) => handleChange("email", val)}
+  placeholder="example@email.com"
 />
 
 
@@ -192,7 +225,22 @@ export default function ProfilePage() {
         />
 
         <div>
-          <label className="block mb-1">Base Currency</label>
+          <label className="block mb-1">Base Currency(I have)</label>
+          <select
+            value={profile.baseCurrency}
+            onChange={(e) => handleChange("baseCurrency", e.target.value)}
+            className="w-full bg-white/20 rounded p-2 text-white"
+          >
+            {currencies.map((c) => (
+              <option key={c.value} value={c.value}>
+                {`${c.symbol || ""} ${c.value} ${c.flag || ""}`}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">Quote Currency(I want)</label>
           <select
             value={profile.baseCurrency}
             onChange={(e) => handleChange("baseCurrency", e.target.value)}
@@ -222,11 +270,13 @@ function Field({
   value,
   onChange,
   disabled = false,
+  placeholder = "",
 }: {
   label: string;
   value: string;
   onChange?: (val: string) => void;
   disabled?: boolean;
+  placeholder?: string; // ✅ add this
 }) {
   return (
     <div>
@@ -236,6 +286,7 @@ function Field({
         disabled={disabled}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        placeholder={placeholder} // ✅ use it here
         className={`w-full bg-white/20 rounded p-2 text-white ${
           disabled ? "opacity-60 cursor-not-allowed" : ""
         }`}
@@ -243,6 +294,7 @@ function Field({
     </div>
   );
 }
+
 
 function Dropdown({
   label,
@@ -339,38 +391,63 @@ function ProfilePicturePicker({ compact = false }: { compact?: boolean }) {
 
   const avatarList = avatarNames.map((name) => `/avatars/${name}.svg`);
 
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+  useClickOutside(pickerRef, () => setShowPicker(false), showPicker);
+  useEscapeKey(() => setShowPicker(false), showPicker);
+
+  
+
   return (
     <div className={compact ? "" : "mb-6"}>
-      <div className="relative inline-block">
+      <div className="relative inline-block" ref={pickerRef}>
+  <img
+    src={selected || "/avatars/Ant.svg"}
+    alt="Selected Avatar"
+    className={`rounded-full object-cover border border-white/30 ${
+      compact ? "w-16 h-16" : "w-20 h-20"
+    } cursor-pointer`}
+    onClick={() => setShowPicker(!showPicker)}
+  />
+
+{showPicker && (
+  <div className="absolute z-20 top-full left-0 mt-2 bg-purple-800 p-3 rounded-lg shadow-lg max-h-[300px] overflow-y-auto w-auto min-w-[360px] max-w-[90vw]">
+    <button
+      onClick={() => setShowPicker(false)}
+      className="absolute top-2 right-2 text-white text-sm hover:text-red-300"
+    >
+      ×
+    </button>
+
+    <div className="grid grid-cols-5 gap-3 mt-6">
+      {avatarList.map((src) => (
         <img
-          src={selected || "/avatars/Ant.svg"}
-          alt="Selected Avatar"
-          className={`rounded-full object-cover border border-white/30 ${
-            compact ? "w-16 h-16" : "w-20 h-20"
-          } cursor-pointer`}
-          onClick={() => setShowPicker(!showPicker)}
+          key={src}
+          src={src}
+          alt="avatar"
+          onClick={() => {
+            handleSelect(src);
+            setShowPicker(false);
+          }}
+          className={`w-14 h-14 rounded-full object-cover border-2 cursor-pointer ${
+            selected === src ? "border-white" : "border-transparent"
+          }`}
         />
+      ))}
+      {/* Upload Image Button Styled Like an Avatar */}
+<label className="w-14 h-14 flex items-center justify-center rounded-full border-2 cursor-pointer bg-white/10 text-white text-xs text-center hover:bg-white/20">
+  +
+  <input
+    type="file"
+    accept="image/*"
+    onChange={handleUpload}
+    className="hidden"
+  />
+</label>
 
-        {showPicker && (
-          <div className="absolute z-20 left-0 ml-2 mt-2 bg-purple-800 p-3 rounded-lg shadow-lg max-h-[300px] overflow-y-auto w-[400px] grid grid-cols-5 gap-3">
-            {avatarList.map((src) => (
-              <img
-                key={src}
-                src={src}
-                alt="avatar"
-                onClick={() => {
-                  handleSelect(src);
-                  setShowPicker(false);
-                }}
-                className={`w-14 h-14 rounded-full object-cover border-2 cursor-pointer ${
-                  selected === src ? "border-white" : "border-transparent"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
+    </div>
+  </div>
+)}
+    </div>
       {!compact && (
         <label className="text-sm underline cursor-pointer block mt-2">
           Upload Custom
