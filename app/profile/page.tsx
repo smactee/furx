@@ -34,6 +34,7 @@ export default function ProfilePage() {
     currentCountry: "",
     city: "",
     baseCurrency: "USD",
+    quoteCurrency: "USD",
   });
 
   const [cityDetected, setCityDetected] = useState(false);
@@ -71,13 +72,15 @@ export default function ProfilePage() {
     setProfile({
       name: saved.name || "",
       email: saved.email || "",
-      phoneCode: saved.phone?.match(/^\+\d+/)?.[0] || "+1",
-      phoneNumber: saved.phone?.replace(/^\+\d+\s*/, "") || "",
+      phoneCode: saved.phoneCode || "+1",
+phoneNumber: saved.phoneNumber || "",
+
       flagOverride: saved.flagOverride || "",
       countryOfOrigin: saved.countryOfOrigin || "",
       currentCountry: saved.currentCountry || "",
       city: saved.city || "",
       baseCurrency: saved.baseCurrency || "USD",
+      quoteCurrency: saved.quoteCurrency || "USD",
     });
   }, []);
 
@@ -86,10 +89,15 @@ export default function ProfilePage() {
   };
 
   const handleSave = () => {
-    localStorage.setItem("userProfile", JSON.stringify({
+    const updatedProfile = {
       ...profile,
-      phone: `${profile.phoneCode}${profile.phoneNumber}`,
-    }));
+      phone: `${profile.phoneCode} ${profile.phoneNumber}`.trim(), // full readable version
+    };
+    
+    localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+    
+    
+    
     if (!isValidEmail(profile.email)) {
       alert("Please enter a valid email address.");
       return;
@@ -118,8 +126,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-600 p-6 text-white">
-      <h1 className="text-2xl font-bold mb-6">Your Profile</h1>
+<main className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-600 p-6 pb-32 text-white">
+<h1 className="text-2xl font-bold mb-6">Your Profile</h1>
 
       <div className="bg-white/10 rounded-xl p-6 space-y-4">
         <div className="flex items-center gap-4">
@@ -177,16 +185,22 @@ export default function ProfilePage() {
               ) : (
                 <span>{getFlagEmoji(getRegionFromPhoneCode(profile.phoneCode))}</span>
               )}
-         <span className="text-white">+</span>
+<span className="text-white">+</span>
 <input
   type="text"
-  value={profile.phoneCode.replace("+", "") || ""}
+  inputMode="numeric"
+  value={profile.phoneCode.replace("+", "")}
   onChange={(e) => {
-    const digits = e.target.value.replace(/[^\d]/g, "");
-    handleChange("phoneCode", "+" + digits);
+    const input = e.target.value.replace(/[^\d]/g, "");
+    const codeOnly = input.match(/^\d{1,4}/)?.[0] || "";
+    handleChange("phoneCode", "+" + codeOnly);
   }}
   className="bg-transparent w-16 outline-none text-white"
 />
+
+
+
+
 
 
             </div>
@@ -242,8 +256,8 @@ export default function ProfilePage() {
         <div>
           <label className="block mb-1">Quote Currency(I want)</label>
           <select
-            value={profile.baseCurrency}
-            onChange={(e) => handleChange("baseCurrency", e.target.value)}
+            value={profile.quoteCurrency}
+            onChange={(e) => handleChange("quoteCurrency", e.target.value)}
             className="w-full bg-white/20 rounded p-2 text-white"
           >
             {currencies.map((c) => (

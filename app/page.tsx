@@ -147,8 +147,20 @@ export default function HomePage() {
 
   const targetCurrencies = currencies.map((c) => c.value).filter((code) => code !== baseCurrency.value);
 
-  const { rates: fiatRates, lastUpdated, nextUpdateInMinutes } = useExchangeRates(baseCurrency.value, targetCurrencies);
-  const { rates: rawCryptoRates } = useCryptoRates("USD");
+  const {
+    rates: fiatRates,
+    lastUpdated,
+    nextUpdateInMinutes,
+    isLoading: fiatLoading,
+  } = useExchangeRates(baseCurrency.value, targetCurrencies);
+  
+  const {
+    rates: rawCryptoRates,
+    isLoading: cryptoLoading,
+  } = useCryptoRates("USD");
+  
+  const isLoading = fiatLoading || cryptoLoading;
+  
 
   const convertedCryptoRates = Object.fromEntries(
     Object.entries(rawCryptoRates).map(([symbol, priceInUSD]) => {
@@ -166,7 +178,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-gradient-to-b from-[#584175] to-[#422F53] p-6 text-white">
       {/* HEADER */}
       <header className="flex justify-between items-center mb-6 relative">
-        <h1 className="text-base font-bold tracking-wide">Für X Homepage</h1>
+        <h1 className="text-base font-bold tracking-wide">Für ✗ Homepage</h1>
         <Link
   href="/notifications"
   onClick={() => {
@@ -271,6 +283,7 @@ export default function HomePage() {
           </button>
         </div>
 
+       
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
           {currencies
             .filter((currency) => currency.value !== baseCurrency.value)
@@ -287,14 +300,17 @@ export default function HomePage() {
                 });
               };
 
-              let convertedAmount = "--";
-              if (typeof targetRate === "number" && typeof amount === "number") {
-                const raw = showPerCoin
-                  ? (isCrypto ? amount / targetRate : amount * targetRate)
-                  : (isCrypto ? amount * targetRate : amount / targetRate);
-                convertedAmount = formatNumber(raw);
-              }
+              const hasRate = typeof targetRate === "number" && typeof amount === "number";
+let convertedAmount = "--";
 
+if (hasRate) {
+  const raw = showPerCoin
+    ? (isCrypto ? amount / targetRate : amount * targetRate)
+    : (isCrypto ? amount * targetRate : amount / targetRate);
+  convertedAmount = formatNumber(raw);
+}
+
+              
               return (
                 <div key={currency.value} className="bg-[#1D102D] p-4 rounded-lg shadow-md">
                   <p className="text-sm text-white/60 mb-1">
@@ -302,16 +318,34 @@ export default function HomePage() {
                       ? `${!cryptoSymbols.includes(baseCurrency.value) ? baseCurrency.symbol : ""}${amount} ${baseCurrency.value} =`
                       : `${!cryptoSymbols.includes(currency.value) ? currency.symbol : ""}${amount} ${currency.value} = ${currency.flag || ""}`}
                   </p>
-                  <p className="text-lg font-semibold text-white">
-                    {showPerCoin
-                      ? `${!cryptoSymbols.includes(currency.value) ? currency.symbol : ""}${convertedAmount} ${currency.value} ${currency.flag || ""}`
-                      : `${!cryptoSymbols.includes(baseCurrency.value) ? baseCurrency.symbol : ""}${convertedAmount} ${baseCurrency.value} ${baseCurrency.flag || ""}`}
-                  </p>
+
+                  <div className="text-lg font-semibold text-white h-[28px] flex items-center">
+                  <div className="text-lg font-semibold text-white h-[28px] flex items-center">
+  {!hasRate ? (
+    <div className="h-5 w-24 rounded shimmer" />
+  ) : showPerCoin ? (
+    <span>
+      {!isCrypto ? currency.symbol : ""}
+      {convertedAmount} {currency.value} {currency.flag || ""}
+    </span>
+  ) : (
+    <span>
+      {!cryptoSymbols.includes(baseCurrency.value) ? baseCurrency.symbol : ""}
+      {convertedAmount} {baseCurrency.value} {baseCurrency.flag || ""}
+    </span>
+  )}
+</div>
+
+</div>
+
+
+
                 </div>
               );
             })}
         </div>
-      </section>
+
+</section>
 
       {/* NAVIGATION */}
 <nav className="fixed bottom-0 left-0 w-full bg-gradient-to-b from-[#584175] to-[#422F53] p-4 flex justify-around border-t border-white/20 z-50">

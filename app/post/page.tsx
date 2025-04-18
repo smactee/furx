@@ -82,7 +82,6 @@ export default function PostPage() {
 
 {/* Payment Method */}
 <PGSelector
-  label="In:"
   selectedMethods={haveMethods}
   setSelectedMethods={setHaveMethods}
 />
@@ -118,7 +117,6 @@ export default function PostPage() {
 
 {/* Payment Method */}
 <PGSelector
-  label="In:"
   selectedMethods={wantMethods}
   setSelectedMethods={setWantMethods}
 />

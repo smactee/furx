@@ -19,6 +19,7 @@ export function useExchangeRates(baseCurrency: string, targetCurrencies: string[
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [minutesAgo, setMinutesAgo] = useState<number | null>(null);
   const [nextUpdateInMinutes, setNextUpdateInMinutes] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchUSDBaseRates = async () => {
     const now = new Date();
@@ -67,10 +68,12 @@ export function useExchangeRates(baseCurrency: string, targetCurrencies: string[
 
   useEffect(() => {
     const updateRates = async () => {
+      setIsLoading(true);
       const usdCache = await fetchUSDBaseRates();
       const converted = calculateRatesFromBase(baseCurrency, usdCache.rates);
       setRates(converted);
       setLastUpdated(new Date(usdCache.timestamp));
+      setIsLoading(false);
     };
 
     updateRates();
@@ -110,8 +113,10 @@ export function useExchangeRates(baseCurrency: string, targetCurrencies: string[
     return () => clearTimeout(timeout);
   }, [baseCurrency, targetCurrencies.join(",")]);
 
-  return { rates, lastUpdated, minutesAgo, nextUpdateInMinutes };
+  return { rates, lastUpdated, minutesAgo, nextUpdateInMinutes, isLoading};
 }
+
+
 
 // ───── CRYPTO RATES HOOK ─────
 export function useCryptoRates(baseCurrency: string) {
@@ -119,6 +124,7 @@ export function useCryptoRates(baseCurrency: string) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [minutesAgo, setMinutesAgo] = useState<number | null>(null);
   const [nextUpdateInMinutes, setNextUpdateInMinutes] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCryptoRates = async () => {
     const now = new Date();
@@ -170,10 +176,12 @@ export function useCryptoRates(baseCurrency: string) {
 
   useEffect(() => {
     const updateRates = async () => {
+      setIsLoading(true);
       const cache = await fetchCryptoRates();
       const converted = calculateFromBase(baseCurrency, cache.rates);
       setRates(converted);
       setLastUpdated(new Date(cache.timestamp));
+      setIsLoading(false);
     };
 
     updateRates();
@@ -213,5 +221,5 @@ export function useCryptoRates(baseCurrency: string) {
     return () => clearTimeout(timeout);
   }, [baseCurrency]);
 
-  return { rates, lastUpdated, minutesAgo, nextUpdateInMinutes };
+  return { rates, lastUpdated, minutesAgo, nextUpdateInMinutes, isLoading };
 }

@@ -1,3 +1,4 @@
+// ✅ PullToRefreshLayout.tsx – Fully working pull-to-refresh wrapper
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -20,7 +21,7 @@ export default function PullToRefreshLayout({
     if (!wrapper) return;
 
     let startY = 0;
-    let currentY = 0;
+    let isMouseDown = false;
     let triggered = false;
 
     const onTouchStart = (e: TouchEvent) => {
@@ -31,12 +32,11 @@ export default function PullToRefreshLayout({
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      currentY = e.touches[0].clientY;
-      const distance = currentY - startY;
-
-      if (distance > 0 && wrapper.scrollTop === 0) {
+      const distance = e.touches[0].clientY - startY;
+      if (wrapper.scrollTop === 0 && distance > 0) {
         e.preventDefault();
-        setYOffset(distance > 80 ? 80 : distance);
+        const capped = Math.min(distance, 21);
+        setYOffset(capped);
         setPulling(true);
       }
     };
@@ -50,31 +50,44 @@ export default function PullToRefreshLayout({
       setPulling(false);
     };
 
-    wrapper.addEventListener("touchstart", onTouchStart, { passive: false });
-    wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
-    wrapper.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchstart", onTouchStart, { passive: false });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
 
     return () => {
-      wrapper.removeEventListener("touchstart", onTouchStart);
-      wrapper.removeEventListener("touchmove", onTouchMove);
-      wrapper.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
     };
   }, [yOffset, onRefresh]);
 
   return (
-    <div ref={wrapperRef} className="min-h-screen overflow-y-auto">
-      {/* Pulling spinner */}
+    <div
+      ref={wrapperRef}
+      style={{
+        minHeight: "100vh",
+        overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       <div
-        className="flex items-center justify-center transition-all duration-300"
-        style={{ height: pulling ? `${yOffset}px` : "0px" }}
+        style={{
+          transform: `translateY(${yOffset}px)`,
+          transition: "transform 0.3s ease-out",
+          willChange: "transform",
+        }}
       >
-        {pulling && (
-          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        {pulling && yOffset > 20 && (
+          <div
+            className="flex items-center justify-center"
+            style={{ height: 60 }}
+          >
+            <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
         )}
+        {children}
       </div>
-
-      {/* Main content */}
-      {children}
     </div>
   );
 }

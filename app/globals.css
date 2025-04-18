@@ -39,3 +39,27 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.shimmer {
+  background-color: #2f1a40; /* ✨ Dark base shimmer bg */
+  background-image: linear-gradient(
+    to right,
+    #2f1a40 0%,
+    #3a2350 20%,
+    #2f1a40 40%,
+    #2f1a40 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
