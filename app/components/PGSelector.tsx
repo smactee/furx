@@ -10,7 +10,7 @@ type PGSelectorProps = {
 };
 
 const allMethods = [
-  "Apple Pay", "Alipay", "Bitcoin", "Cash App", "Ethereum", "Google Pay",
+  "Apple Pay", "Alipay", "Bitcoin", "Cash", "Ethereum", "Google Pay",
   "Paypal", "Razor Pay", "Revolut", "Samsung Pay", "Stripe", "Skrill",
   "USDT Tether", "Venmo", "Wechat Pay", "Wire Transfer", "Wise", "Zelle",
 ];
